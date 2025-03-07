@@ -7,6 +7,10 @@
 //! 5. Navigate to https://127.0.0.1:3000
 //! 6. Acknowledge that these certs are self-signed, and load the page anyway
 //! 7. Possibly see some stalled requests
+//!
+//! If you don't see any stalled requests, **restarting your computer, and
+//! relaunching the crate should work**. On linux, at least, you can get the
+//! same effect by logging out and logging back in, skipping the restart.
 
 use axum::body::Body;
 use axum::extract::Request;
