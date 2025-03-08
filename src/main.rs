@@ -73,6 +73,8 @@ async fn main() -> eyre::Result<()> {
     let mut server_config = rustls::ServerConfig::builder()
         .with_no_client_auth()
         .with_single_cert(certs, key)?;
+    // NB. Removing this `max_early_data_size` makes the hang _much_ less
+    // consistent, but doesn't prevent it entirely.
     server_config.max_early_data_size = 1024;
 
     let server_config = Arc::new(server_config);
@@ -94,16 +96,22 @@ async fn main() -> eyre::Result<()> {
         let server_config = server_config.clone();
 
         tokio::spawn(async move {
+            // NB. Replacing these three statements with the below seems to
+            // prevent the issue from triggering. It also means you'll need to
+            // connect over http, rather than https.
+            //
+            // let tokio_conn = TokioIo::new(conn);
             let tls_acceptor = TlsAcceptor::from(server_config);
             let tls_conn = match tls_acceptor.accept(conn).await {
-                Ok(conn) => conn,
+                Ok(conn) => {
+                    tracing::info!("tls connection accepted");
+                    conn
+                },
                 Err(err) => {
                     tracing::error!(?err, ?peer_sa, "tls accept error");
                     return;
-                }
+                },
             };
-            tracing::info!("tls connection accepted");
-
             let tokio_conn = TokioIo::new(tls_conn);
 
             Builder::new(TokioExecutor::new())
